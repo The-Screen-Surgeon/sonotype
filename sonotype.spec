@@ -1,6 +1,10 @@
 # PyInstaller spec for Sonotype Windows build
 # Build: pyinstaller sonotype.spec --noconfirm
+# FFmpeg is downloaded separately by the GitHub Actions workflow and
+# placed in the ffmpeg/ directory before this spec runs.
 
+import os
+import sys
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 datas = []
@@ -10,6 +14,14 @@ datas += collect_data_files("yt_dlp")
 datas += collect_data_files("reportlab")
 datas += collect_data_files("docx")
 datas += [("static", "static")]
+
+# Bundle FFmpeg binary inside the executable if it exists
+ffmpeg_dir = os.path.join(os.getcwd(), "ffmpeg")
+if os.path.isdir(ffmpeg_dir):
+    for fname in os.listdir(ffmpeg_dir):
+        fpath = os.path.join(ffmpeg_dir, fname)
+        if os.path.isfile(fpath):
+            datas.append((fpath, "ffmpeg"))
 
 hiddenimports = [
     "uvicorn.logging",
