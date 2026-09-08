@@ -1,0 +1,26 @@
+# Local configuration and credentials
+config.toml
+.env
+.env.*
+!.env.example
+
+# Python and local runtime output
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# User media and exports
+*.wav
+*.mp3
+*.m4a
+*.webm
+*.ogg
+*.flac
+*.mp4
+*.mov
+*.avi
+*.mkv
+exports/
+models/

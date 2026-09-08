@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A local-first transcription workspace.">
+    <title>Local Transcription</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">LOCAL-FIRST TRANSCRIPTION</p>
+        <h1>Local Transcription</h1>
+        <p class="lede">Record in your browser or import a file. Processing stays on this machine.</p>
+      </header>
+
+      <section class="panel source-panel" aria-labelledby="source-heading">
+        <h2 id="source-heading">1. Add a recording</h2>
+        <div class="source-actions">
+          <button id="record-button" class="record" type="button">Start recording</button>
+          <span id="recording-time" aria-live="polite"></span>
+          <label class="file-picker">Import audio or video<input id="file-input" type="file" accept="audio/*,video/*,.m4a,.flac,.opus"></label>
+        </div>
+        <p id="source-name" class="hint">No file selected.</p>
+        <label class="option"><input id="diarize-input" type="checkbox"> Label speakers locally (optional)</label>
+        <p class="hint">Speaker labels are generic (Speaker 1, Speaker 2). This optional feature needs the local diarization add-on.</p>
+        <button id="transcribe-button" type="button" disabled>Transcribe locally</button>
+      </section>
+
+      <section id="progress-panel" class="panel hidden" aria-live="polite">
+        <div class="progress-heading"><strong id="progress-message">Preparing local transcription…</strong><span id="progress-percent">0%</span></div>
+        <div class="progress-track"><div id="progress-bar"></div></div>
+      </section>
+
+      <section class="panel transcript-panel" aria-labelledby="transcript-heading">
+        <div class="section-heading"><div><h2 id="transcript-heading">2. Review transcript</h2><p class="hint">Click in the transcript to edit it before export.</p></div><span id="confidence" class="confidence hidden"></span></div>
+        <div id="transcript" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Your local transcript will appear here."></div>
+        <div class="export-actions">
+          <button id="copy-button" type="button">Copy text</button>
+          <button id="docx-button" type="button">Export DOCX</button>
+          <button id="pdf-button" type="button">Export PDF</button>
+        </div>
+        <p id="status" class="hint" aria-live="polite"></p>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
