@@ -1,4 +1,4 @@
-"""Anonymous, local-only speaker labeling."""
+"""Anonymous, local-only speaker labeling for Sonotype."""
 
 from __future__ import annotations
 
@@ -8,22 +8,26 @@ from pathlib import Path
 
 def label_segments(segments: list[dict], audio_path: Path) -> list[dict]:
     """Attach Speaker 1..N labels by maximum overlap with local diarization turns."""
-    model_path = os.getenv("PRIVATE_SCRIBE_DIARIZATION_MODEL")
+    model_path = os.getenv("SONOTYPE_DIARIZATION_MODEL")
     if not model_path:
         raise RuntimeError(
-            "Speaker diarization is not configured. Set PRIVATE_SCRIBE_DIARIZATION_MODEL "
-            "to a local pyannote pipeline directory after installing requirements-diarization.txt."
+            "Speaker diarization is not configured. Set SONOTYPE_DIARIZATION_MODEL "
+            "to a local pyannote pipeline directory after installing "
+            "requirements-diarization.txt."
         )
 
     local_pipeline = Path(model_path).expanduser().resolve()
     if not local_pipeline.is_dir():
-        raise RuntimeError("PRIVATE_SCRIBE_DIARIZATION_MODEL must point to a local model directory.")
+        raise RuntimeError(
+            "SONOTYPE_DIARIZATION_MODEL must point to a local model directory."
+        )
 
     try:
         from pyannote.audio import Pipeline
     except ImportError as exc:
         raise RuntimeError(
-            "Optional diarization dependency is missing. Install requirements-diarization.txt."
+            "Optional diarization dependency is missing. "
+            "Install requirements-diarization.txt."
         ) from exc
 
     pipeline = Pipeline.from_pretrained(str(local_pipeline))

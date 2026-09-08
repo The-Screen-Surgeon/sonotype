@@ -1,1 +1,1 @@
-"""PrivateScribe local application package."""
+"""Sonotype local-first transcription application."""

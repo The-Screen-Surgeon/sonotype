@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-label="Sonotype screenshot placeholder">
+  <rect width="1200" height="720" fill="#f5f7fb"/>
+  <rect x="100" y="72" width="1000" height="576" rx="22" fill="#ffffff" stroke="#dfe5ef" stroke-width="2"/>
+  <rect x="140" y="112" width="34" height="34" rx="10" fill="#2463eb"/>
+  <text x="188" y="137" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#172033">Sonotype</text>
+  <text x="140" y="242" font-family="Arial, sans-serif" font-size="52" font-weight="700" fill="#172033">Screenshot placeholder</text>
+  <text x="140" y="292" font-family="Arial, sans-serif" font-size="25" fill="#64718a">A local-first transcription workspace.</text>
+  <rect x="140" y="352" width="920" height="210" rx="16" fill="#f8faff" stroke="#9eb7ef" stroke-width="2" stroke-dasharray="8 7"/>
+  <text x="600" y="455" text-anchor="middle" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#2c3b56">Drop audio or video here</text>
+</svg>
