@@ -32,7 +32,7 @@ ALLOWED_EXTENSIONS = {
     "mts", "ogg", "opus", "ts", "wav", "webm", "wmv",
 }
 MAX_FILE_BYTES = 750 * 1024 * 1024
-WHISPER_MODEL = os.getenv("SONOTYPE_WHISPER_MODEL", "base.en")
+WHISPER_MODEL = os.getenv("SONOTYPE_WHISPER_MODEL", "small.en")
 
 app = FastAPI(title="Sonotype", version="1.0.0")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")

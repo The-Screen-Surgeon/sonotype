@@ -50,7 +50,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8765
 
 Then open <http://127.0.0.1:8765>.
 
-Set `SONOTYPE_WHISPER_MODEL` to choose another installed faster-whisper model. The default is `base.en` and is optimized for English CPU use.
+Set `SONOTYPE_WHISPER_MODEL` to choose another installed faster-whisper model. The default is `small.en` — the sweet spot of accuracy and speed on CPU.
 
 ## YouTube usage
 
