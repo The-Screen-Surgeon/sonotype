@@ -46,6 +46,17 @@ For an air-gapped setup, pre-stage the model cache before running Sonotype. FFmp
 
 Grab the latest `Sonotype-Windows-x64.zip` from [Releases](../../releases), unzip, and double-click `Sonotype.exe`. No Python install required.
 
+### ⚠️ Windows SmartScreen warning
+
+Because Sonotype is not signed with a Microsoft code-signing certificate (that costs hundreds of dollars per year), Windows will show a **"Windows protected your PC"** screen the first time you run it. This is normal for open-source apps.
+
+To proceed:
+1. Click **"More info"**
+2. Click **"Run anyway"**
+3. Sonotype will launch
+
+This only happens once. After that, Windows remembers the app and opens it normally.
+
 ## Install and run (developers)
 
 Sonotype supports Python 3.10–3.12.
