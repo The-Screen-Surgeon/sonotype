@@ -98,8 +98,12 @@ def _transcribe(audio_path: Path, diarize: bool, send: Callable[[dict], None]) -
             send({"type": "progress", "pct": progress})
 
     if diarize:
-        send({"type": "phase", "phase": "Assigning anonymous speaker labels locally…"})
-        segments = label_segments(segments, audio_path)
+        try:
+            send({"type": "phase", "phase": "Assigning anonymous speaker labels…"})
+            segments = label_segments(segments, audio_path)
+        except RuntimeError:
+            # Diarization model not configured — skip speaker labels, keep transcript
+            pass
 
     confidence = round((sum(scores) / len(scores) * 100) if scores else 0, 1)
     return {
