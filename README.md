@@ -8,14 +8,15 @@ Sonotype turns recordings, media files, and permitted YouTube videos into editab
 
 ## Features
 
-- Import common audio and video formats, including MP3, WAV, M4A, MP4, MOV, and WebM
-- Record directly from your microphone
-- Import audio from a YouTube URL when you own the content or have permission to download it
-- CPU transcription powered by faster-whisper
-- Live local progress updates and editable timestamped transcripts
-- Optional anonymous speaker diarization (`Speaker 1`, `Speaker 2`, and so on)
-- Copy text or export DOCX and PDF files
-- Native desktop window with pywebview, plus a FastAPI development server
+- Record from your microphone (default source), import a file, or paste a YouTube URL
+- Supports MP3, WAV, M4A, MP4, MOV, WebM, and more (up to 750 MB)
+- CPU transcription powered by faster-whisper (`small.en` model)
+- Anonymous speaker labels always on (`Speaker 1`, `Speaker 2`, …)
+- Editable timestamped transcripts with confidence score
+- Copy text or save as TXT, Markdown, DOCX, PDF, HTML, or CSV
+- Native desktop window — opens in its own app, not a browser tab
+- FFmpeg bundled inside the Windows executable — zero setup
+- First-run popup guides new users through the initial model download
 
 ## How it works
 
@@ -74,16 +75,18 @@ Set `SONOTYPE_WHISPER_MODEL` to choose another installed faster-whisper model. T
 
 YouTube import downloads audio to the local runtime directory through `yt-dlp`, transcribes it locally, and deletes the temporary file when the job ends. Use this only for videos you own or are permitted to download, and follow YouTube’s terms and applicable law.
 
-## Optional speaker diarization
+## Speaker labels
 
-Install the optional local dependency, then point Sonotype at a local compatible pipeline:
+Speaker diarization is always on. Sonotype automatically assigns generic, anonymous labels (`Speaker 1`, `Speaker 2`, …) to differentiate voices in the transcript. It does not identify people by name.
+
+To enable the diarization engine locally:
 
 ```bash
 pip install -r requirements-diarization.txt
 export SONOTYPE_DIARIZATION_MODEL=/absolute/path/to/local/pipeline
 ```
 
-See [DIARIZATION.md](DIARIZATION.md) for limitations and setup notes. Diarization uses generic, anonymous labels only; it does not identify people.
+See [DIARIZATION.md](DIARIZATION.md) for setup notes. If the diarization model is not configured, Sonotype still transcribes — it just skips speaker labels.
 
 ## Tech stack
 

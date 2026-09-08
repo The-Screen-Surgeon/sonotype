@@ -136,7 +136,7 @@ def _stream_job(job: Callable[[Callable[[dict], None]], dict]) -> StreamingRespo
 
 
 @app.post("/transcribe")
-async def transcribe(media: UploadFile = File(...), diarize: bool = Form(default=False)) -> StreamingResponse:
+async def transcribe(media: UploadFile = File(...), diarize: bool = Form(default=True)) -> StreamingResponse:
     extension = (media.filename or "").rsplit(".", 1)[-1].lower()
     if extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Unsupported audio or video file type.")
@@ -161,7 +161,7 @@ async def transcribe(media: UploadFile = File(...), diarize: bool = Form(default
 
 
 @app.post("/transcribe/youtube")
-async def transcribe_youtube(url: str = Form(...), diarize: bool = Form(default=False)) -> StreamingResponse:
+async def transcribe_youtube(url: str = Form(...), diarize: bool = Form(default=True)) -> StreamingResponse:
     if not is_youtube_url(url):
         raise HTTPException(status_code=400, detail="Enter a valid YouTube URL.")
 
