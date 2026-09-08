@@ -1,2 +1,3 @@
--r requirements.txt
+# Optional. Install only when a local, licensed diarization model bundle is available.
+# This package performs inference locally when loaded from PRIVATE_SCRIBE_DIARIZATION_MODEL.
 pyannote.audio>=3.3,<4

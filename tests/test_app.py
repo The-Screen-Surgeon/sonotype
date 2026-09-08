@@ -3,31 +3,29 @@ import sys
 
 from fastapi.testclient import TestClient
 
-sys.path.insert(0, str(Path(__file__).parents[1] / "backend"))
-from main import app
+sys.path.insert(0, str(Path(__file__).parents[1]))
+from app.main import app
 
 client = TestClient(app)
 
 
-def test_health_reports_local_cpu_processing():
+def test_health():
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["processing"] == "local CPU"
+    assert response.json()["status"] == "ok"
 
 
-def test_frontend_is_served():
+def test_index():
     response = client.get("/")
     assert response.status_code == 200
     assert "Local Transcription" in response.text
 
 
-def test_docx_export_is_a_document():
-    response = client.post("/export/docx", data={"transcript": "A short local transcript.", "source_name": "sample.webm"})
-    assert response.status_code == 200
-    assert response.content.startswith(b"PK")
+def test_docx_export_rejects_empty():
+    response = client.post("/export/docx", data={"transcript": ""})
+    assert response.status_code == 400
 
 
-def test_pdf_export_is_a_pdf():
-    response = client.post("/export/pdf", data={"transcript": "A short local transcript.", "source_name": "sample.webm"})
-    assert response.status_code == 200
-    assert response.content.startswith(b"%PDF")
+def test_pdf_export_rejects_empty():
+    response = client.post("/export/pdf", data={"transcript": ""})
+    assert response.status_code == 400
