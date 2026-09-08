@@ -19,9 +19,27 @@ Sonotype turns recordings, media files, and permitted YouTube videos into editab
 
 ## How it works
 
-Sonotype starts a local server on `127.0.0.1` and processes each file on your computer. Imported files and downloaded audio are placed in `runtime/uploads` only while a transcription job is running, then removed in a `finally` block. The application has no sign-in, analytics, telemetry, upload service, or cloud transcription API.
+Sonotype is a native desktop app. Double-click and it opens in its own window — no browser tab, no server address, no setup. Everything runs on your machine: audio decoding, transcription, and export. No accounts, no telemetry, no cloud API, no data leaving your computer.
 
-The first run of faster-whisper may download the selected model to your local model cache. For an air-gapped setup, stage the model cache before running Sonotype. FFmpeg should be installed locally for reliable support across the full audio/video import list.
+Imported files and downloaded audio are held in a temporary folder only while a transcription job is running, then deleted automatically when the job finishes.
+
+## First-run setup: do a test transcription
+
+The first time you transcribe something, Sonotype downloads the `small.en` Whisper model (~500 MB) and caches it locally. This is a one-time download — after that, the model loads instantly from your local cache and every transcription starts immediately.
+
+**Recommended:** Record a short 5–10 second voice memo and transcribe it as your first run. This lets the model download and cache in the background while you get a feel for the app. Once that test transcription completes, you're fully set up — subsequent transcriptions will be fast and smooth.
+
+**Speed expectations** (with `small.en` on a typical laptop CPU):
+
+| Audio length | Approx. time |
+|---|---|
+| 1 min | ~20–30 sec |
+| 10 min | ~4–6 min |
+| 1 hour | ~25–35 min |
+
+Roughly 0.4x real-time. The first run adds 30–60 seconds for the model download.
+
+For an air-gapped setup, pre-stage the model cache before running Sonotype. FFmpeg is bundled inside the Windows executable — no separate install needed.
 
 ## Download (Windows)
 
