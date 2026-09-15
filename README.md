@@ -6,6 +6,8 @@
 
 Sonotype turns recordings, media files, and permitted YouTube videos into editable transcripts without accounts, telemetry, or a cloud transcription API.
 
+Download the latest desktop build for [Windows, Linux, or macOS](https://the-screen-surgeon.github.io/sonotype/).
+
 ## Features
 
 - Record from your microphone, import a file, or paste a YouTube URL from the centered Record view
@@ -41,11 +43,18 @@ The first time you transcribe something, Sonotype downloads the `small.en` Whisp
 
 Roughly 0.4x real-time. The first run adds 30–60 seconds for the model download.
 
-For an air-gapped setup, pre-stage the model cache before running Sonotype. FFmpeg is bundled inside the Windows executable — no separate install needed.
+For an air-gapped setup, pre-stage the model cache before running Sonotype. FFmpeg is bundled in the release packages — no separate install needed.
 
-## Download (Windows)
+## Download (Windows, Linux, and macOS)
 
-Grab the latest `Sonotype-Windows-x64.zip` from [Releases](../../releases), unzip, and double-click `Sonotype.exe`. No Python install required.
+Visit the [Sonotype download page](https://the-screen-surgeon.github.io/sonotype/) or open [Releases](../../releases) to choose a package:
+
+- **Windows:** `Sonotype-Windows-x64.zip` — unzip and double-click `Sonotype.exe`.
+- **Linux:** `Sonotype-Linux-x64.tar.gz` — extract and run `Sonotype` from a 64-bit desktop environment.
+- **macOS Apple silicon:** `Sonotype-macOS-arm64.zip` — for M-series Macs.
+- **macOS Intel:** `Sonotype-macOS-x64.zip` — for older Intel Macs.
+
+No Python install is required for release packages. Linux users may need GTK 3 and WebKitGTK desktop libraries if their distribution does not already include them.
 
 ### ⚠️ Windows SmartScreen warning
 
@@ -57,6 +66,10 @@ To proceed:
 3. Sonotype will launch
 
 This only happens once. After that, Windows remembers the app and opens it normally.
+
+### macOS security warning
+
+Sonotype is not signed with an Apple Developer certificate. If macOS blocks the first launch, open **System Settings → Privacy & Security**, then choose **Open Anyway** for Sonotype. This is a one-time Gatekeeper prompt.
 
 ## Install and run (developers)
 

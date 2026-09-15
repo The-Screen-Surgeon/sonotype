@@ -1,7 +1,7 @@
-# PyInstaller spec for Sonotype Windows build
+# PyInstaller spec for Sonotype desktop builds
 # Build: pyinstaller sonotype.spec --noconfirm
-# FFmpeg is downloaded separately by the GitHub Actions workflow and
-# placed in the ffmpeg/ directory before this spec runs.
+# FFmpeg is supplied by the GitHub Actions workflow and placed in the
+# ffmpeg/ directory before this spec runs.
 
 import os
 import sys
@@ -42,6 +42,7 @@ hiddenimports = [
 hiddenimports += collect_submodules("yt_dlp")
 
 block_cipher = None
+app_icon = "docs/logo.ico" if sys.platform == "win32" else None
 
 a = Analysis(
     ["desktop.py"],
@@ -74,5 +75,5 @@ exe = EXE(
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
-    icon="docs/logo.ico",
+    icon=app_icon,
 )

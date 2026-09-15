@@ -1,4 +1,4 @@
-name: Build Windows Release
+name: Build Cross-Platform Release
 
 on:
   push:
@@ -10,8 +10,34 @@ permissions:
   contents: write
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build:
+    name: Build ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: Windows-x64
+            label: Windows x64
+            archive: Sonotype-Windows-x64.zip
+            artifact: Sonotype-Windows-x64
+          - os: ubuntu-latest
+            platform: Linux-x64
+            label: Linux x64
+            archive: Sonotype-Linux-x64.tar.gz
+            artifact: Sonotype-Linux-x64
+          - os: macos-15-intel
+            platform: macOS-x64
+            label: macOS Intel
+            archive: Sonotype-macOS-x64.zip
+            artifact: Sonotype-macOS-x64
+          - os: macos-15
+            platform: macOS-arm64
+            label: macOS Apple silicon
+            archive: Sonotype-macOS-arm64.zip
+            artifact: Sonotype-macOS-arm64
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,47 +47,97 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Linux desktop libraries
+        if: matrix.platform == 'Linux-x64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 libwebkit2gtk-4.1-0
+
       - name: Install dependencies
+        shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
+          python -m pip install -r requirements.txt pyinstaller imageio-ffmpeg
 
-      - name: Download FFmpeg
-        shell: pwsh
+      - name: Bundle FFmpeg
+        shell: bash
         run: |
-          $url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-          Invoke-WebRequest -Uri $url -OutFile ffmpeg.zip
-          Expand-Archive -Path ffmpeg.zip -DestinationPath ffmpeg-temp -Force
-          $ffmpegExe = (Get-ChildItem -Path ffmpeg-temp -Recurse -Filter "ffmpeg.exe" | Select-Object -First 1).FullName
-          New-Item -ItemType Directory -Path ffmpeg -Force
-          Copy-Item $ffmpegExe ffmpeg/
-          Write-Host "Bundled ffmpeg.exe: $((Get-Item ffmpeg/ffmpeg.exe).Length / 1MB) MB"
+          mkdir -p ffmpeg
+          python - <<'PY'
+          import imageio_ffmpeg
+          import shutil
+          import sys
+          from pathlib import Path
+
+          source = Path(imageio_ffmpeg.get_ffmpeg_exe())
+          destination = Path("ffmpeg") / ("ffmpeg.exe" if sys.platform == "win32" else "ffmpeg")
+          shutil.copy2(source, destination)
+          if sys.platform != "win32":
+              destination.chmod(destination.stat().st_mode | 0o111)
+          print(f"Bundled {destination} ({destination.stat().st_size / 1024 / 1024:.1f} MB)")
+          PY
 
       - name: Build executable
-        run: pyinstaller sonotype.spec --noconfirm
+        shell: bash
+        run: python -m PyInstaller sonotype.spec --noconfirm
 
-      - name: Package
+      - name: Package Windows build
+        if: matrix.platform == 'Windows-x64'
         shell: pwsh
         run: |
-          $dir = "Sonotype-Windows"
+          $dir = "Sonotype-Windows-x64"
           New-Item -ItemType Directory -Path $dir -Force
           Copy-Item -Path "dist/Sonotype.exe" -Destination "$dir/"
           Copy-Item -Path "README.md" -Destination "$dir/"
           Copy-Item -Path "LICENSE" -Destination "$dir/"
-          Compress-Archive -Path "$dir/*" -DestinationPath "Sonotype-Windows-x64.zip" -Force
+          Compress-Archive -Path "$dir/*" -DestinationPath "${{ matrix.archive }}" -Force
 
-      - name: Upload artifact
+      - name: Package Unix build
+        if: matrix.platform != 'Windows-x64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="Sonotype-${{ matrix.platform }}"
+          mkdir -p "$dir"
+          cp "dist/Sonotype" "$dir/Sonotype"
+          cp README.md LICENSE "$dir/"
+          if [ "${{ matrix.platform }}" = "Linux-x64" ]; then
+            tar -czf "${{ matrix.archive }}" "$dir"
+          else
+            zip -rq "${{ matrix.archive }}" "$dir"
+          fi
+
+      - name: List package contents
+        shell: bash
+        run: ls -lh "${{ matrix.archive }}"
+
+      - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: Sonotype-Windows-x64
-          path: Sonotype-Windows-x64.zip
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.archive }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download platform packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Sonotype-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: List release assets
+        run: ls -lh release-assets
 
       - name: Create release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: Sonotype-Windows-x64.zip
+          files: release-assets/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

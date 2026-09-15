@@ -54,3 +54,16 @@ def test_file_upload_rejects_unsupported_extension():
     response = client.post("/transcribe", data={"diarize": "false"}, files={"media": ("notes.txt", b"not media", "text/plain")})
     assert response.status_code == 400
     assert response.json()["detail"] == "Unsupported audio or video file type."
+
+
+def test_download_page_has_current_platform_release_links():
+    page = (Path(__file__).parents[1] / "landing" / "index.html").read_text(encoding="utf-8")
+    for asset in (
+        "Sonotype-Windows-x64.zip",
+        "Sonotype-Linux-x64.tar.gz",
+        "Sonotype-macOS-arm64.zip",
+        "Sonotype-macOS-x64.zip",
+    ):
+        assert f"releases/latest/download/{asset}" in page
+    assert "No cloud upload" in page
+    assert "No telemetry" in page
