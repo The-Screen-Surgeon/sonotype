@@ -136,6 +136,10 @@ h1 em, h2 em { color: var(--forest); font-style: italic; }
 .download-button-quiet { background: #f4f7f3; border-color: #e0e8e0; color: var(--muted); }
 .download-button-quiet:hover { background: #e9f0e9; color: var(--deep-forest); }
 .download-button span { font-size: 1.1rem; line-height: .8; }
+.download-alt { color: var(--forest); display: inline-block; font-size: .72rem; font-weight: 700; margin-top: 11px; text-decoration: none; }
+.download-alt:hover { color: var(--deep-forest); text-decoration: underline; }
+.download-card-featured .download-alt { color: #c7ddcb; }
+.download-card-featured .download-alt:hover { color: #fff; }
 .download-card > small { color: #89958c; font-size: .63rem; margin-top: 12px; }
 .download-card-featured > small { color: #9eb9a4; }
 .mac-downloads { display: grid; gap: 7px; }

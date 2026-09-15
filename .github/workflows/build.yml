@@ -92,6 +92,32 @@ jobs:
           Copy-Item -Path "LICENSE" -Destination "$dir/"
           Compress-Archive -Path "$dir/*" -DestinationPath "${{ matrix.archive }}" -Force
 
+      - name: Build Windows installer
+        if: matrix.platform == 'Windows-x64'
+        shell: pwsh
+        run: |
+          $isccPath = $null
+          $command = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          if ($command) {
+            $isccPath = $command.Source
+          }
+          if (-not $isccPath) {
+            $candidate = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+            if (Test-Path $candidate) {
+              $isccPath = $candidate
+            }
+          }
+          if (-not $isccPath) {
+            choco install innosetup --no-progress --yes
+            $isccPath = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $isccPath)) {
+            throw "Inno Setup compiler was not found."
+          }
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          & $isccPath "installer\Sonotype.iss" "/DAppVersion=$version" "/Oinstaller-output"
+          Copy-Item -Path "installer-output\Sonotype-Setup-Windows-x64.exe" -Destination "."
+
       - name: Package Unix build
         if: matrix.platform != 'Windows-x64'
         shell: bash
@@ -109,13 +135,23 @@ jobs:
 
       - name: List package contents
         shell: bash
-        run: ls -lh "${{ matrix.archive }}"
+        run: |
+          ls -lh "${{ matrix.archive }}"
+          if [ "${{ matrix.platform }}" = "Windows-x64" ]; then ls -lh "Sonotype-Setup-Windows-x64.exe"; fi
 
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.archive }}
+          if-no-files-found: error
+
+      - name: Upload Windows installer
+        if: matrix.platform == 'Windows-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonotype-Windows-installer
+          path: Sonotype-Setup-Windows-x64.exe
           if-no-files-found: error
 
   release:

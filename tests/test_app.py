@@ -4,6 +4,7 @@ import sys
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
+from app import main as main_module
 from app.main import app
 
 
@@ -59,6 +60,7 @@ def test_file_upload_rejects_unsupported_extension():
 def test_download_page_has_current_platform_release_links():
     page = (Path(__file__).parents[1] / "landing" / "index.html").read_text(encoding="utf-8")
     for asset in (
+        "Sonotype-Setup-Windows-x64.exe",
         "Sonotype-Windows-x64.zip",
         "Sonotype-Linux-x64.tar.gz",
         "Sonotype-macOS-arm64.zip",
@@ -72,3 +74,46 @@ def test_download_page_has_current_platform_release_links():
 def test_pyinstaller_spec_collects_faster_whisper_assets():
     spec = (Path(__file__).parents[1] / "sonotype.spec").read_text(encoding="utf-8")
     assert 'collect_data_files("faster_whisper")' in spec
+
+
+def test_library_endpoint_persists_entries_outside_the_webview(tmp_path, monkeypatch):
+    library_path = tmp_path / "library.json"
+    monkeypatch.setattr(main_module, "LIBRARY_PATH", library_path)
+    entries = [{
+        "id": "test-entry",
+        "name": "meeting.txt",
+        "format": "TXT",
+        "text": "[00:00] Test transcript",
+        "confidence": "Confidence: 91%",
+        "savedAt": "2026-09-15T15:00:00Z",
+    }]
+
+    response = client.put("/library", json=entries)
+
+    assert response.status_code == 200
+    assert response.json() == entries
+    assert client.get("/library").json() == entries
+    assert '"meeting.txt"' in library_path.read_text(encoding="utf-8")
+
+
+def test_desktop_launcher_uses_persistent_webview_storage():
+    desktop = (Path(__file__).parents[1] / "desktop.py").read_text(encoding="utf-8")
+    assert "private_mode=False" in desktop
+    assert "storage_path=str(webview_storage_dir())" in desktop
+
+
+def test_runtime_endpoint_tracks_model_state(tmp_path, monkeypatch):
+    state_path = tmp_path / "model-state.json"
+    monkeypatch.setattr(main_module, "MODEL_STATE_PATH", state_path)
+    monkeypatch.setattr(main_module, "WHISPER_MODEL", "unit-test-model")
+
+    assert client.get("/runtime").json()["model_ready"] is False
+    state_path.write_text('{"model": "unit-test-model", "ready": true}', encoding="utf-8")
+    assert client.get("/runtime").json()["model_ready"] is True
+
+
+def test_windows_installer_is_per_user_and_keeps_app_data_separate():
+    installer = (Path(__file__).parents[1] / "installer" / "Sonotype.iss").read_text(encoding="utf-8")
+    assert "DefaultDirName={localappdata}\\Programs\\Sonotype" in installer
+    assert "PrivilegesRequired=lowest" in installer
+    assert "Source: \"..\\dist\\Sonotype.exe\"" in installer

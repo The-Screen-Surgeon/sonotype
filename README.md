@@ -26,7 +26,7 @@ Sonotype is a transcription tool, not another platform.
 - Review editable timestamped text with a confidence score.
 - Use anonymous speaker labels (`Speaker 1`, `Speaker 2`, …) when a local diarization model is configured.
 - Copy text or save TXT, Markdown, CSV, HTML, DOCX, or PDF files locally.
-- Reopen saved transcript copies from the browser-local Library.
+- Reopen saved transcript copies from the persistent local Library.
 - Run in a native desktop window rather than a browser tab.
 
 ## How it works
@@ -35,7 +35,7 @@ Sonotype is a transcription tool, not another platform.
 2. **Transcribe locally.** Sonotype runs the speech model on your computer. It does not upload your recording to a transcription service.
 3. **Edit and save.** Review the transcript, make changes, and save the format you need.
 
-The app makes network requests only when it needs to download the speech model for the first transcription or when you explicitly use the YouTube source. Imported files and downloaded audio are held in a temporary local folder while a job runs, then deleted automatically when it finishes.
+The app makes network requests only when it needs to download the speech model for the first transcription or when you explicitly use the YouTube source. Imported files and downloaded audio are held in a temporary local folder while a job runs, then deleted automatically when it finishes. Saved Library entries, model state, and the desktop webview profile remain in Sonotype’s per-user application data directory.
 
 ## Download for Windows, Linux, and macOS
 
@@ -43,7 +43,7 @@ The [Sonotype download page](https://the-screen-surgeon.github.io/sonotype/) has
 
 | Platform | Download | Notes |
 |---|---|---|
-| Windows x64 | [Sonotype-Windows-x64.zip](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-Windows-x64.zip) | Windows 10/11; unzip and run `Sonotype.exe` |
+| Windows x64 | [Sonotype Windows installer](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-Setup-Windows-x64.exe) | Windows 10/11; run setup for Start Menu/Desktop shortcuts |
 | Linux x64 | [Sonotype-Linux-x64.tar.gz](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-Linux-x64.tar.gz) | 64-bit Linux desktop; GTK 3 and WebKitGTK may be required |
 | macOS Apple silicon | [Sonotype-macOS-arm64.zip](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-macOS-arm64.zip) | M-series Macs; macOS 12+ |
 | macOS Intel | [Sonotype-macOS-x64.zip](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-macOS-x64.zip) | Older Intel Macs; macOS 12+ |
@@ -53,6 +53,8 @@ The release packages include FFmpeg and do not require a Python installation. Li
 ```bash
 sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0
 ```
+
+Windows also has a [portable ZIP](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-Windows-x64.zip) for users who do not want an installed shortcut. The installer is recommended because it places Sonotype in the user’s Programs folder and keeps app data separate from the application files.
 
 ### Windows SmartScreen warning
 
@@ -70,7 +72,7 @@ Sonotype is not signed with an Apple Developer certificate. If macOS blocks the 
 
 ## First-run setup
 
-The first transcription downloads the `small.en` Whisper model (about 500 MB) and caches it locally. This is a one-time download; after it completes, subsequent transcriptions start from the local cache.
+The first transcription downloads the `small.en` Whisper model (about 500 MB) and caches it locally. This is a one-time download; after it completes, subsequent transcriptions start from the local cache. The Library and first-run state are stored in the per-user Sonotype application-data directory, outside the installed program folder, so updates and reinstalls do not erase them.
 
 The easiest setup is a short 5–10 second recording. It lets the model download while you try the workflow.
 

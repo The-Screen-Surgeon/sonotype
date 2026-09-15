@@ -5,6 +5,8 @@ import json
 import math
 import os
 import tempfile
+import threading
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
@@ -20,12 +22,16 @@ from reportlab.lib.units import inch
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from .diarization import label_segments
+from .paths import ensure_app_data_dir, runtime_uploads_dir
 from .youtube import download_audio, is_youtube_url
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "static"
-RUNTIME_UPLOADS = ROOT / "runtime" / "uploads"
-RUNTIME_UPLOADS.mkdir(parents=True, exist_ok=True)
+APP_DATA_DIR = ensure_app_data_dir()
+RUNTIME_UPLOADS = runtime_uploads_dir()
+LIBRARY_PATH = APP_DATA_DIR / "library.json"
+MODEL_STATE_PATH = APP_DATA_DIR / "model-state.json"
+LIBRARY_LOCK = threading.Lock()
 
 ALLOWED_EXTENSIONS = {
     "aac", "avi", "flac", "m4a", "mkv", "mov", "mp3", "mp4", "mpeg", "mpg",
@@ -52,6 +58,95 @@ def health() -> dict:
         "named_speaker_recognition": False,
         "diarization_model_configured": bool(os.getenv("SONOTYPE_DIARIZATION_MODEL")),
     }
+
+
+def _read_library() -> list[dict]:
+    try:
+        entries = json.loads(LIBRARY_PATH.read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
+        return []
+    return entries if isinstance(entries, list) else []
+
+
+def _normalise_library(entries: list[dict]) -> list[dict]:
+    cleaned: list[dict] = []
+    for raw in entries:
+        if not isinstance(raw, dict):
+            continue
+        text = str(raw.get("text", "")).strip()
+        if not text:
+            continue
+        cleaned.append({
+            "id": str(raw.get("id") or uuid.uuid4()),
+            "name": str(raw.get("name") or "Sonotype transcript")[:240],
+            "format": str(raw.get("format") or "TXT")[:16].upper(),
+            "text": text,
+            "confidence": str(raw.get("confidence") or "")[:80],
+            "savedAt": str(raw.get("savedAt") or datetime.now().isoformat()),
+        })
+        if len(cleaned) == 40:
+            break
+    return cleaned
+
+
+def _write_library(entries: list[dict]) -> None:
+    payload = json.dumps(_normalise_library(entries), ensure_ascii=False, indent=2)
+    temporary = LIBRARY_PATH.with_suffix(".tmp")
+    temporary.write_text(payload, encoding="utf-8")
+    temporary.replace(LIBRARY_PATH)
+
+
+def _model_is_ready() -> bool:
+    model_path = Path(WHISPER_MODEL).expanduser()
+    if model_path.is_dir():
+        return True
+
+    try:
+        state = json.loads(MODEL_STATE_PATH.read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
+        state = {}
+    if state.get("model") == WHISPER_MODEL and state.get("ready") is True:
+        return True
+
+    # Recognise a model downloaded by an earlier Sonotype release so an
+    # upgrade does not show the first-run prompt or download it again.
+    cache_root = os.getenv("HF_HUB_CACHE") or os.getenv("HUGGINGFACE_HUB_CACHE")
+    if not cache_root:
+        hf_home = os.getenv("HF_HOME")
+        cache_root = str(Path(hf_home) / "hub") if hf_home else str(Path.home() / ".cache" / "huggingface" / "hub")
+    model_cache = Path(cache_root) / f"models--Systran--faster-whisper-{WHISPER_MODEL.replace('/', '--')}"
+    return any(model_cache.glob("snapshots/*/model.bin"))
+
+
+def _mark_model_ready() -> None:
+    temporary = MODEL_STATE_PATH.with_suffix(".tmp")
+    temporary.write_text(
+        json.dumps({"model": WHISPER_MODEL, "ready": True}, indent=2),
+        encoding="utf-8",
+    )
+    temporary.replace(MODEL_STATE_PATH)
+
+
+@app.get("/runtime")
+def runtime_status() -> dict:
+    """Expose only local readiness state needed by the desktop UI."""
+    with LIBRARY_LOCK:
+        library_count = len(_read_library())
+    return {"model_ready": _model_is_ready(), "library_count": library_count}
+
+
+@app.get("/library")
+def get_library() -> list[dict]:
+    with LIBRARY_LOCK:
+        return _read_library()
+
+
+@app.put("/library")
+async def put_library(entries: list[dict]) -> list[dict]:
+    cleaned = _normalise_library(entries)
+    with LIBRARY_LOCK:
+        _write_library(cleaned)
+    return cleaned
 
 
 def _format_time(seconds: float) -> str:
@@ -96,6 +191,9 @@ def _transcribe(audio_path: Path, diarize: bool, send: Callable[[dict], None]) -
         if progress > last_progress:
             last_progress = progress
             send({"type": "progress", "pct": progress})
+
+    with LIBRARY_LOCK:
+        _mark_model_ready()
 
     if diarize:
         try:

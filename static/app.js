@@ -78,7 +78,7 @@ let recordingFinalizing = false;
 let isTranscribing = false;
 let hasTranscribed = false;
 let currentSourceName = "";
-let libraryEntries = readLibrary();
+let libraryEntries = [];
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -214,15 +214,26 @@ function displayRecordedFile(file, duration) {
 
 // ── First-run modal ───────────────────────────────────────
 
-function maybeShowFirstRunModal() {
-  if (!hasTranscribed && !localStorage.getItem("sonotype-modal-seen")) modal.classList.remove("hidden");
+async function maybeShowFirstRunModal() {
+  try {
+    const response = await fetch("/runtime");
+    if (!response.ok) throw new Error("Runtime status unavailable");
+    const runtime = await response.json();
+    if (!runtime.model_ready && !hasTranscribed) modal.classList.remove("hidden");
+    return;
+  } catch {
+    // Keep the browser fallback useful if the local service is still starting.
+    try {
+      if (!hasTranscribed && !localStorage.getItem("sonotype-modal-seen")) modal.classList.remove("hidden");
+    } catch { /* storage may be unavailable */ }
+  }
 }
 
 modalDismiss.addEventListener("click", () => {
   modal.classList.add("hidden");
-  localStorage.setItem("sonotype-modal-seen", "1");
+  try { localStorage.setItem("sonotype-modal-seen", "1"); } catch { /* storage may be unavailable */ }
 });
-setTimeout(maybeShowFirstRunModal, 800);
+setTimeout(() => { maybeShowFirstRunModal(); }, 800);
 
 // ── View and source switching ─────────────────────────────
 
@@ -443,6 +454,7 @@ async function beginTranscription({ file = null, sourceName = "", url = "" } = {
     setProgress(100, "Transcript ready locally");
     setStatus("Transcript ready locally. Edit and save your copy.", "success");
     hasTranscribed = true;
+    modal.classList.add("hidden");
   } catch (error) {
     progressPanel.classList.add("hidden");
     setStatus(error.message, "error");
@@ -481,11 +493,40 @@ function readLibrary() {
   }
 }
 
-function persistLibrary() {
+async function persistLibrary() {
   try { localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(libraryEntries)); } catch { /* local storage may be unavailable */ }
+  try {
+    const response = await fetch("/library", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(libraryEntries),
+    });
+    if (!response.ok) throw new Error("Library save failed.");
+    const saved = await response.json();
+    if (Array.isArray(saved)) libraryEntries = saved;
+  } catch { /* localStorage remains a browser fallback */ }
 }
 
-function addLibraryEntry(name, text, format) {
+async function loadLibrary() {
+  try {
+    const response = await fetch("/library");
+    if (!response.ok) throw new Error("Library unavailable");
+    const saved = await response.json();
+    libraryEntries = Array.isArray(saved) ? saved : [];
+    if (!libraryEntries.length) {
+      const legacy = readLibrary();
+      if (legacy.length) {
+        libraryEntries = legacy;
+        await persistLibrary();
+      }
+    }
+  } catch {
+    libraryEntries = readLibrary();
+  }
+  renderLibrary();
+}
+
+async function addLibraryEntry(name, text, format) {
   const entry = {
     id: window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name,
@@ -495,8 +536,8 @@ function addLibraryEntry(name, text, format) {
     savedAt: new Date().toISOString(),
   };
   libraryEntries = [entry, ...libraryEntries.filter((item) => item.name !== name)].slice(0, 40);
-  persistLibrary();
   renderLibrary();
+  await persistLibrary();
 }
 
 function renderLibrary() {
@@ -535,10 +576,10 @@ function renderLibrary() {
     remove.className = "library-delete";
     remove.type = "button";
     remove.textContent = "Remove";
-    remove.addEventListener("click", () => {
+    remove.addEventListener("click", async () => {
       libraryEntries = libraryEntries.filter((saved) => saved.id !== entry.id);
-      persistLibrary();
       renderLibrary();
+      await persistLibrary();
     });
     item.append(open, remove);
     libraryList.append(item);
@@ -581,7 +622,7 @@ async function saveTranscription() {
       const writable = await handle.createWritable();
       await writable.write(content);
       await writable.close();
-      addLibraryEntry(handle.name, text, extension);
+      await addLibraryEntry(handle.name, text, extension);
       setStatus(`Saved locally as ${handle.name}`, "success");
       return;
     }
@@ -597,7 +638,7 @@ async function saveTranscription() {
     link.click();
     link.remove();
     URL.revokeObjectURL(href);
-    addLibraryEntry(suggestedName, text, extension);
+    await addLibraryEntry(suggestedName, text, extension);
     setStatus(`Saved locally as ${suggestedName}`, "success");
   } catch (error) {
     if (error.name !== "AbortError") setStatus(error.message || "Save failed.", "error");
@@ -610,4 +651,5 @@ saveButton.addEventListener("click", saveTranscription);
 switchView("record");
 switchSource("record");
 renderLibrary();
+loadLibrary();
 setStatus("Ready — processing stays on this machine.");

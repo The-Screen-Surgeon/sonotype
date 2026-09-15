@@ -13,6 +13,7 @@ import uvicorn
 import webview
 
 from app.main import app
+from app.paths import webview_storage_dir
 
 
 def _setup_ffmpeg() -> None:
@@ -65,7 +66,10 @@ def main() -> None:
 
     webview.create_window("Sonotype", f"http://127.0.0.1:{port}", min_size=(900, 700))
     try:
-        webview.start()
+        # pywebview defaults to private mode, which discards localStorage on
+        # every launch. Keep the profile in per-user app data so the local
+        # Library and setup state survive closing and reopening Sonotype.
+        webview.start(private_mode=False, storage_path=str(webview_storage_dir()))
     finally:
         server.should_exit = True
         server_thread.join(timeout=5)

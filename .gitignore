@@ -9,4 +9,5 @@ ffmpeg/
 *.egg-info/
 build/
 dist/
+installer-output/
 *.spec.bak
