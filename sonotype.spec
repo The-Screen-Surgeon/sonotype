@@ -13,6 +13,9 @@ datas += collect_data_files("uvicorn")
 datas += collect_data_files("yt_dlp")
 datas += collect_data_files("reportlab")
 datas += collect_data_files("docx")
+# faster-whisper loads the bundled Silero VAD model at runtime. PyInstaller
+# does not infer this non-Python asset from the package import on its own.
+datas += collect_data_files("faster_whisper")
 datas += [("static", "static")]
 
 # Bundle FFmpeg binary inside the executable if it exists

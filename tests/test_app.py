@@ -67,3 +67,8 @@ def test_download_page_has_current_platform_release_links():
         assert f"releases/latest/download/{asset}" in page
     assert "No cloud upload" in page
     assert "No telemetry" in page
+
+
+def test_pyinstaller_spec_collects_faster_whisper_assets():
+    spec = (Path(__file__).parents[1] / "sonotype.spec").read_text(encoding="utf-8")
+    assert 'collect_data_files("faster_whisper")' in spec
