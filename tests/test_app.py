@@ -117,3 +117,27 @@ def test_windows_installer_is_per_user_and_keeps_app_data_separate():
     assert "DefaultDirName={localappdata}\\Programs\\Sonotype" in installer
     assert "PrivilegesRequired=lowest" in installer
     assert "Source: \"..\\dist\\Sonotype.exe\"" in installer
+
+
+def test_logos_use_cream_background_with_forest_waveform():
+    for logo_path in (
+        Path(__file__).parents[1] / "static" / "logo.svg",
+        Path(__file__).parents[1] / "landing" / "logo.svg",
+        Path(__file__).parents[1] / "docs" / "logo.svg",
+    ):
+        logo = logo_path.read_text(encoding="utf-8")
+        assert 'fill="#f7f5ef"' in logo, f"{logo_path.name} must use the cream background"
+        assert 'fill="#315d45"' in logo, f"{logo_path.name} must use forest waveform bars"
+        assert 'fill="#fff"' not in logo, f"{logo_path.name} must not keep white bars"
+
+
+def test_record_button_symbol_is_css_drawn_not_a_text_glyph():
+    index = (Path(__file__).parents[1] / "static" / "index.html").read_text(encoding="utf-8")
+    app_js = (Path(__file__).parents[1] / "static" / "app.js").read_text(encoding="utf-8")
+    styles = (Path(__file__).parents[1] / "static" / "styles.css").read_text(encoding="utf-8")
+
+    assert 'class="record-button-symbol" aria-hidden="true"></span>' in index
+    assert "Ⅱ" not in app_js
+    assert "●" not in app_js
+    assert ".record-button.recording .record-button-symbol::before" in styles
+    assert ".record-button.paused .record-button-symbol::before" in styles

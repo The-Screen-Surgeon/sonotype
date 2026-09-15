@@ -194,7 +194,6 @@ function resetRecordingControls() {
   clearInterval(recordingTimer);
   recordingTimer = null;
   recordButton.classList.remove("recording", "paused");
-  recordButtonSymbol.textContent = "●";
   recordButton.setAttribute("aria-label", "Start recording");
   recordingControls.classList.add("hidden");
   stopButton.disabled = false;
@@ -305,7 +304,6 @@ async function startRecording() {
     recordingTime.textContent = "00:00";
     recordingNote.textContent = "Recording locally · press the button to pause or resume.";
     recordButton.classList.add("recording");
-    recordButtonSymbol.textContent = "Ⅱ";
     recordButton.setAttribute("aria-label", "Pause recording");
     recordingControls.classList.remove("hidden");
     recordingTimer = window.setInterval(paintRecordingTimer, 250);
@@ -324,7 +322,6 @@ function toggleRecordingPause() {
     clearInterval(recordingTimer);
     recordingTimer = null;
     recordButton.classList.add("paused");
-    recordButtonSymbol.textContent = "▶";
     recordButton.setAttribute("aria-label", "Resume recording");
     recordingLabel.textContent = "Recording paused";
     recordingNote.textContent = "Press the button to continue recording.";
@@ -334,7 +331,6 @@ function toggleRecordingPause() {
     recordingPausedAt = 0;
     recorder.resume();
     recordButton.classList.remove("paused");
-    recordButtonSymbol.textContent = "Ⅱ";
     recordButton.setAttribute("aria-label", "Pause recording");
     recordingLabel.textContent = "Recording in progress";
     recordingNote.textContent = "Recording locally · press the button to pause or resume.";

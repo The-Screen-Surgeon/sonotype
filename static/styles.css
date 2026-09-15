@@ -153,8 +153,14 @@ h2 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.45rem, 2
 .record-button:active { box-shadow: 0 3px 0 rgba(127, 46, 43, .16); transform: translateY(4px); }
 .record-button.recording { background: var(--record-dark); }
 .record-button.paused { background: var(--warning); box-shadow: 0 8px 0 rgba(168, 101, 18, .16), 0 16px 28px rgba(168, 101, 18, .18); }
-.record-button-symbol { font-size: 2.8rem; line-height: 1; }
-.record-button.paused .record-button-symbol { font-size: 2.35rem; }
+.record-button-symbol { display: block; height: 44px; position: relative; width: 44px; }
+.record-button-symbol::before, .record-button-symbol::after { background: #fff; border-radius: 6px; content: ""; display: none; position: absolute; }
+.record-button:not(.recording):not(.paused) .record-button-symbol::before { border-radius: 50%; display: block; height: 34px; left: 5px; top: 5px; width: 34px; }
+.record-button.recording .record-button-symbol::before, .record-button.recording .record-button-symbol::after { display: block; height: 42px; top: 1px; width: 13px; }
+.record-button.recording .record-button-symbol::before { left: 7px; }
+.record-button.recording .record-button-symbol::after { left: 24px; }
+.record-button.paused .record-button-symbol::after { display: none; }
+.record-button.paused .record-button-symbol::before { border-radius: 0; clip-path: polygon(0 0, 100% 50%, 0 100%); display: block; height: 40px; left: 12px; top: 2px; width: 30px; }
 .record-state { align-items: center; display: flex; flex-direction: column; gap: 5px; }
 .record-state strong { color: var(--deep-forest); font-size: 1.08rem; }
 .record-state span { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 1.05rem; letter-spacing: .04em; }
