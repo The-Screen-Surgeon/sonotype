@@ -1,6 +1,6 @@
 # Sonotype
 
-> Local-first audio and video transcription, in a focused desktop workspace.
+> Local-first audio and video transcription, in a focused desktop utility.
 
 ![Sonotype screenshot placeholder](docs/screenshot-placeholder.svg)
 
@@ -8,12 +8,13 @@ Sonotype turns recordings, media files, and permitted YouTube videos into editab
 
 ## Features
 
-- Record from your microphone (default source), import a file, or paste a YouTube URL
+- Record from your microphone, import a file, or paste a YouTube URL from the centered Record view
 - Supports MP3, WAV, M4A, MP4, MOV, WebM, and more (up to 750 MB)
 - CPU transcription powered by faster-whisper (`small.en` model)
 - Anonymous speaker labels always on (`Speaker 1`, `Speaker 2`, …)
 - Editable timestamped transcripts with confidence score
-- Copy text or save as TXT, Markdown, DOCX, PDF, HTML, or CSV
+- Pause and resume local recordings, then stop to transcribe automatically
+- Copy text or save as TXT, Markdown, DOCX, PDF, HTML, or CSV; saved transcripts remain in the local Library
 - Native desktop window — opens in its own app, not a browser tab
 - FFmpeg bundled inside the Windows executable — zero setup
 - First-run popup guides new users through the initial model download

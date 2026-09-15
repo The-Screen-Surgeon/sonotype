@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <!-- Background: rounded square -->
-  <rect width="512" height="512" rx="112" ry="112" fill="#2463eb"/>
+  <rect width="512" height="512" rx="112" ry="112" fill="#315d45"/>
 
   <!-- Waveform bars on the left, transitioning to text lines on the right -->
   <!-- The bars decrease in height and increase in spacing → becoming text lines -->

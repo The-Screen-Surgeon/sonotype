@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Sonotype — local-first audio and video transcription.">
-    <title>Sonotype</title>
+    <meta name="description" content="Sonotype — local AI transcription for recordings, media, and permitted YouTube videos.">
+    <title>Sonotype · Local AI transcription</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css">
@@ -12,55 +12,124 @@
   <body>
     <main class="shell">
       <header class="site-header">
-        <a class="brand" href="/" aria-label="Sonotype"><img src="/static/logo.svg" class="brand-logo" alt="Sonotype" width="32" height="32"><span>Sonotype</span></a>
+        <div class="brand-lockup">
+          <a class="brand" href="/" aria-label="Sonotype home">
+            <img src="/static/logo.svg" class="brand-logo" alt="" width="42" height="42">
+            <span>Sonotype</span>
+          </a>
+          <p class="tagline">Local AI transcription</p>
+        </div>
+        <p class="privacy-note"><span aria-hidden="true">⌂</span> Your files stay on this machine.</p>
       </header>
 
-      <section class="card source-card" aria-labelledby="source-heading">
-        <div class="section-label"><span>01</span><h2 id="source-heading">Choose a source</h2></div>
-        <div class="tabs" role="tablist" aria-label="Transcription source">
-          <button class="tab" id="tab-file" type="button" role="tab" aria-selected="false" aria-controls="file-panel" data-source="file">File Upload</button>
-          <button class="tab active" id="tab-record" type="button" role="tab" aria-selected="true" aria-controls="record-panel" data-source="record">Record</button>
-          <button class="tab" id="tab-youtube" type="button" role="tab" aria-selected="false" aria-controls="youtube-panel" data-source="youtube">YouTube URL</button>
-        </div>
+      <nav class="top-tabs" role="tablist" aria-label="Sonotype sections">
+        <button class="top-tab active" id="record-tab" type="button" role="tab" aria-selected="true" aria-controls="record-view" data-view="record">Record</button>
+        <button class="top-tab" id="library-tab" type="button" role="tab" aria-selected="false" aria-controls="library-view" data-view="library">Library</button>
+      </nav>
 
-        <div class="source-panel hidden" id="file-panel" role="tabpanel" aria-labelledby="tab-file">
-          <label id="drop-zone" class="drop-zone" for="file-input">
-            <span class="upload-icon" aria-hidden="true">↑</span>
-            <strong>Drop audio or video here or click to select</strong>
-            <span>MP3, WAV, M4A, MP4, MOV, WebM and more · up to 750 MB</span>
-            <input id="file-input" type="file" accept="audio/*,video/*,.aac,.flac,.m4a,.mkv,.mpeg,.mpg,.mts,.ogg,.opus,.ts,.webm,.wmv">
-          </label>
-          <p id="file-name" class="source-note">No file selected.</p>
-        </div>
-
-        <div class="source-panel" id="record-panel" role="tabpanel" aria-labelledby="tab-record">
-          <div class="recorder">
-            <button id="record-button" class="record-button" type="button" aria-label="Start recording"><span class="record-dot" aria-hidden="true"></span></button>
-            <div><strong id="recording-label">Ready to record</strong><p id="recording-time">00:00</p></div>
-            <button id="stop-button" class="quiet-button hidden" type="button">Stop</button>
+      <section id="record-view" class="view-panel" role="tabpanel" aria-labelledby="record-tab">
+        <section class="card source-card" aria-labelledby="record-heading">
+          <div class="section-intro">
+            <p class="eyebrow">RECORD</p>
+            <h1 id="record-heading">Ready when you are.</h1>
+            <p>Capture a recording, import media, or prepare a permitted YouTube URL. Transcription runs locally.</p>
           </div>
-          <p id="recording-note" class="source-note">Your browser will ask for microphone access.</p>
-        </div>
 
-        <div class="source-panel hidden" id="youtube-panel" role="tabpanel" aria-labelledby="tab-youtube">
-          <label class="field-label" for="youtube-url">YouTube video URL</label>
-          <div class="url-row"><input id="youtube-url" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…"><button id="fetch-button" class="secondary-button" type="button">Fetch</button></div>
-          <p id="youtube-note" class="source-note">Use only for content you own or are permitted to download.</p>
-        </div>
+          <div class="source-tabs" role="tablist" aria-label="Recording source">
+            <button class="source-tab active" id="source-record-tab" type="button" role="tab" aria-selected="true" aria-controls="record-panel" data-source="record">Record locally</button>
+            <button class="source-tab" id="source-file-tab" type="button" role="tab" aria-selected="false" aria-controls="file-panel" data-source="file">Upload audio or video</button>
+            <button class="source-tab" id="source-youtube-tab" type="button" role="tab" aria-selected="false" aria-controls="youtube-panel" data-source="youtube">YouTube URL</button>
+          </div>
 
-        <button id="transcribe-button" class="primary-button" type="button" disabled>Transcribe <span aria-hidden="true">→</span></button>
+          <div class="source-panel" id="record-panel" role="tabpanel" aria-labelledby="source-record-tab">
+            <div class="record-stage">
+              <button id="record-button" class="record-button" type="button" aria-label="Start recording">
+                <span id="record-button-symbol" class="record-button-symbol" aria-hidden="true">●</span>
+              </button>
+              <div class="record-state">
+                <strong id="recording-label">Ready to record</strong>
+                <span id="recording-time">00:00</span>
+              </div>
+              <p id="recording-note" class="source-note">Microphone ready · recordings never leave this device.</p>
+              <div id="recording-controls" class="recording-controls hidden">
+                <button id="stop-button" class="primary-button" type="button">Stop &amp; Transcribe</button>
+              </div>
+              <p id="recording-hint" class="quiet-hint">Press Record to begin. While recording, the same button pauses and resumes.</p>
+            </div>
+          </div>
+
+          <div class="source-panel hidden" id="file-panel" role="tabpanel" aria-labelledby="source-file-tab">
+            <label id="drop-zone" class="drop-zone" for="file-input">
+              <span class="upload-icon" aria-hidden="true">↑</span>
+              <strong>Choose an audio or video file</strong>
+              <span>MP3, WAV, M4A, MP4, MOV, WebM and more · up to 750 MB</span>
+              <input id="file-input" type="file" accept="audio/*,video/*,.aac,.flac,.m4a,.mkv,.mpeg,.mpg,.mts,.ogg,.opus,.ts,.webm,.wmv">
+            </label>
+            <div id="file-name" class="file-name">No file selected.</div>
+            <div id="file-readiness" class="readiness-card hidden" aria-live="polite">
+              <div class="readiness-heading"><span id="file-progress-message">Preparing local import…</span><strong id="file-progress-percent">0%</strong></div>
+              <div class="progress-track" aria-hidden="true"><div id="file-progress-bar" class="progress-fill"></div></div>
+              <p id="file-ready-note" class="readiness-note">The file stays on this machine.</p>
+            </div>
+          </div>
+
+          <div class="source-panel hidden" id="youtube-panel" role="tabpanel" aria-labelledby="source-youtube-tab">
+            <label class="field-label" for="youtube-url">YouTube video URL</label>
+            <div class="url-row">
+              <input id="youtube-url" type="url" inputmode="url" placeholder="Paste YouTube URL">
+              <button id="prepare-youtube-button" class="secondary-button" type="button">Prepare locally</button>
+            </div>
+            <p id="youtube-note" class="source-note">Use only for content you own or are permitted to download.</p>
+            <div id="youtube-readiness" class="readiness-card hidden" aria-live="polite">
+              <div class="readiness-heading"><span id="youtube-progress-message">Preparing local URL…</span><strong id="youtube-progress-percent">0%</strong></div>
+              <div class="progress-track" aria-hidden="true"><div id="youtube-progress-bar" class="progress-fill"></div></div>
+              <p id="youtube-ready-note" class="readiness-note">Audio will be downloaded locally when transcription begins.</p>
+            </div>
+          </div>
+
+          <button id="transcribe-button" class="primary-button transcribe-button hidden" type="button">Transcribe locally <span aria-hidden="true">→</span></button>
+          <p class="source-footnote"><span aria-hidden="true">⌂</span> Local recording, local processing, local saving. No account required.</p>
+        </section>
+
+        <section id="progress-panel" class="card progress-card hidden" aria-live="polite">
+          <div class="progress-heading">
+            <div><p class="eyebrow">LOCAL PROCESSING</p><strong id="progress-message">Preparing transcription…</strong></div>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="progress-track" aria-hidden="true"><div id="progress-bar" class="progress-fill"></div></div>
+        </section>
+
+        <section class="card transcript-card" aria-labelledby="transcript-heading">
+          <div class="transcript-heading">
+            <div><p class="eyebrow">TRANSCRIPT</p><h2 id="transcript-heading">Review and save a local copy.</h2></div>
+            <span id="confidence" class="confidence hidden"></span>
+          </div>
+          <div id="transcript" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" data-placeholder="Your transcript will appear here."></div>
+          <div class="save-row">
+            <button id="copy-button" class="secondary-button" type="button">Copy text</button>
+            <label class="format-control" for="format-select"><span>Save as</span><select id="format-select" aria-label="Transcription format">
+              <option value="txt">Plain text (.txt)</option>
+              <option value="md">Markdown (.md)</option>
+              <option value="csv">CSV (.csv)</option>
+              <option value="html">HTML (.html)</option>
+              <option value="docx">DOCX (.docx)</option>
+              <option value="pdf">PDF (.pdf)</option>
+            </select></label>
+            <button id="save-button" class="primary-button" type="button">Save transcription</button>
+          </div>
+          <div id="status-bar" class="status-bar" aria-live="polite"><span id="status-icon" class="status-icon" aria-hidden="true">ℹ</span><span id="status" class="status-text">Ready — processing stays on this machine.</span></div>
+        </section>
       </section>
 
-      <section id="progress-panel" class="card progress-card hidden" aria-live="polite">
-        <div class="progress-heading"><div><p class="eyebrow">PROCESSING</p><strong id="progress-message">Preparing transcription…</strong></div><span id="progress-percent">0%</span></div>
-        <div class="progress-track" aria-hidden="true"><div id="progress-bar"></div></div>
-      </section>
-
-      <section class="card transcript-card" aria-labelledby="transcript-heading">
-        <div class="transcript-heading"><div class="section-label"><span>02</span><h2 id="transcript-heading">Review transcript</h2></div><span id="confidence" class="confidence hidden"></span></div>
-        <div id="transcript" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" data-placeholder="Your transcript will appear here."></div>
-        <div class="save-row"><button id="copy-button" class="secondary-button" type="button">Copy</button><button id="save-button" class="secondary-button" type="button">Save as…</button></div>
-        <div id="status-bar" class="status-bar" aria-live="polite"><span id="status-icon" class="status-icon" aria-hidden="true"></span><span id="status" class="status-text"></span></div>
+      <section id="library-view" class="view-panel hidden" role="tabpanel" aria-labelledby="library-tab">
+        <section class="card library-card" aria-labelledby="library-heading">
+          <div class="section-intro">
+            <p class="eyebrow">LIBRARY</p>
+            <h1 id="library-heading">Saved locally.</h1>
+            <p>Your saved transcripts stay in this browser on this machine. Choose one to reopen it.</p>
+          </div>
+          <div id="library-list" class="library-list" aria-live="polite"></div>
+        </section>
       </section>
 
       <footer class="site-footer">
@@ -70,10 +139,10 @@
 
     <div id="first-run-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal">
-        <div class="modal-icon" aria-hidden="true">🎙️</div>
+        <div class="modal-icon" aria-hidden="true">◌</div>
         <h2 id="modal-title">First transcription takes a moment</h2>
         <p>The first time you transcribe, Sonotype downloads the speech model (~500 MB) and caches it on your machine. This is a one-time download — after that, every transcription starts instantly.</p>
-        <p class="modal-tip">Try a short 5–10 second recording to get started. Once that finishes, you're all set.</p>
+        <p class="modal-tip">Try a short 5–10 second recording to get started. Once that finishes, you’re all set.</p>
         <button id="modal-dismiss" class="primary-button" type="button">Got it</button>
       </div>
     </div>

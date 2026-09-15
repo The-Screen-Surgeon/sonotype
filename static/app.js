@@ -1,170 +1,393 @@
 // ── Sonotype ──────────────────────────────────────────────
 // Local-first audio/video transcription desktop app
 
-const dropZone = document.querySelector("#drop-zone");
-const fileInput = document.querySelector("#file-input");
-const fileName = document.querySelector("#file-name");
-const recordButton = document.querySelector("#record-button");
-const stopButton = document.querySelector("#stop-button");
-const recordingLabel = document.querySelector("#recording-label");
-const recordingTime = document.querySelector("#recording-time");
-const recordingNote = document.querySelector("#recording-note");
-const youtubeUrl = document.querySelector("#youtube-url");
-const fetchButton = document.querySelector("#fetch-button");
-const youtubeNote = document.querySelector("#youtube-note");
-const transcribeButton = document.querySelector("#transcribe-button");
-const transcript = document.querySelector("#transcript");
-const progressPanel = document.querySelector("#progress-panel");
-const progressBar = document.querySelector("#progress-bar");
-const progressPercent = document.querySelector("#progress-percent");
-const progressMessage = document.querySelector("#progress-message");
-const confidence = document.querySelector("#confidence");
-const copyButton = document.querySelector("#copy-button");
-const saveButton = document.querySelector("#save-button");
-const statusBar = document.querySelector("#status-bar");
-const statusIcon = document.querySelector("#status-icon");
-const statusText = document.querySelector("#status");
-const modal = document.querySelector("#first-run-modal");
-const modalDismiss = document.querySelector("#modal-dismiss");
+const $ = (selector) => document.querySelector(selector);
 
+const topTabs = document.querySelectorAll(".top-tab");
+const recordView = $("#record-view");
+const libraryView = $("#library-view");
+const sourceTabs = document.querySelectorAll(".source-tab");
+const sourcePanels = document.querySelectorAll(".source-panel");
+const dropZone = $("#drop-zone");
+const fileInput = $("#file-input");
+const fileName = $("#file-name");
+const fileReadiness = $("#file-readiness");
+const fileProgressBar = $("#file-progress-bar");
+const fileProgressPercent = $("#file-progress-percent");
+const fileProgressMessage = $("#file-progress-message");
+const fileReadyNote = $("#file-ready-note");
+const recordButton = $("#record-button");
+const recordButtonSymbol = $("#record-button-symbol");
+const stopButton = $("#stop-button");
+const recordingControls = $("#recording-controls");
+const recordingLabel = $("#recording-label");
+const recordingTime = $("#recording-time");
+const recordingNote = $("#recording-note");
+const youtubeUrl = $("#youtube-url");
+const prepareYoutubeButton = $("#prepare-youtube-button");
+const youtubeNote = $("#youtube-note");
+const youtubeReadiness = $("#youtube-readiness");
+const youtubeProgressBar = $("#youtube-progress-bar");
+const youtubeProgressPercent = $("#youtube-progress-percent");
+const youtubeProgressMessage = $("#youtube-progress-message");
+const youtubeReadyNote = $("#youtube-ready-note");
+const transcribeButton = $("#transcribe-button");
+const transcript = $("#transcript");
+const progressPanel = $("#progress-panel");
+const progressBar = $("#progress-bar");
+const progressPercent = $("#progress-percent");
+const progressMessage = $("#progress-message");
+const confidence = $("#confidence");
+const copyButton = $("#copy-button");
+const formatSelect = $("#format-select");
+const saveButton = $("#save-button");
+const statusBar = $("#status-bar");
+const statusIcon = $("#status-icon");
+const statusText = $("#status");
+const libraryList = $("#library-list");
+const modal = $("#first-run-modal");
+const modalDismiss = $("#modal-dismiss");
+
+const LIBRARY_STORAGE_KEY = "sonotype-library-v1";
+const YOUTUBE_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "www.youtu.be"]);
+const FORMAT_CONFIG = {
+  txt: { label: "Plain text", extension: "txt", mime: "text/plain" },
+  md: { label: "Markdown", extension: "md", mime: "text/markdown" },
+  csv: { label: "CSV", extension: "csv", mime: "text/csv" },
+  html: { label: "HTML", extension: "html", mime: "text/html" },
+  docx: { label: "DOCX", extension: "docx", mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+  pdf: { label: "PDF", extension: "pdf", mime: "application/pdf" },
+};
+
+let activeView = "record";
 let activeSource = "record";
 let selectedFile = null;
+let fileReady = false;
 let readyYoutubeUrl = "";
+let youtubeReady = false;
+let preparationToken = 0;
+let preparationTimer = null;
 let recorder = null;
+let recordingStream = null;
 let recordingChunks = [];
 let recordingTimer = null;
 let recordingStartedAt = 0;
+let recordingPausedAt = 0;
+let recordingPausedTotal = 0;
+let recordingFinalizing = false;
+let isTranscribing = false;
 let hasTranscribed = false;
+let currentSourceName = "";
+let libraryEntries = readLibrary();
 
 // ── Helpers ───────────────────────────────────────────────
 
 function formatTime(seconds) {
-  return `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
+  const total = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainder = total % 60;
+  return `${hours ? `${hours.toString().padStart(2, "0")}:` : ""}${minutes.toString().padStart(2, "0")}:${remainder.toString().padStart(2, "0")}`;
 }
 
 function setStatus(message, type = "") {
   statusText.textContent = message;
   statusBar.className = `status-bar${type ? ` ${type}` : ""}`;
-  statusIcon.textContent = type === "success" ? "✓" : type === "error" ? "⚠" : "ℹ";
+  statusIcon.textContent = type === "success" ? "✓" : type === "error" ? "!" : "•";
 }
 
-function updateReadyState() {
-  const ready = activeSource === "youtube" ? Boolean(readyYoutubeUrl) : Boolean(selectedFile);
-  transcribeButton.disabled = !ready || recorder?.state === "recording";
+function setProgress(percent, message) {
+  const value = Math.max(0, Math.min(100, Number(percent) || 0));
+  progressPanel.classList.remove("hidden");
+  if (message) progressMessage.textContent = message;
+  progressBar.style.width = `${value}%`;
+  progressPercent.textContent = `${Math.round(value)}%`;
 }
 
-function displayFile(file, source = "file") {
+function updateSourceAction() {
+  const sourceIsReady = activeSource === "file" ? Boolean(selectedFile && fileReady) : Boolean(readyYoutubeUrl && youtubeReady);
+  transcribeButton.classList.toggle("hidden", activeSource === "record");
+  transcribeButton.disabled = !sourceIsReady || isTranscribing;
+  recordButton.disabled = isTranscribing || recordingFinalizing;
+}
+
+function switchView(view) {
+  activeView = view;
+  topTabs.forEach((tab) => {
+    const active = tab.dataset.view === view;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+  });
+  recordView.classList.toggle("hidden", view !== "record");
+  libraryView.classList.toggle("hidden", view !== "library");
+  if (view === "library") renderLibrary();
+}
+
+function switchSource(source) {
+  activeSource = source;
+  sourceTabs.forEach((tab) => {
+    const active = tab.dataset.source === source;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+  });
+  sourcePanels.forEach((panel) => panel.classList.toggle("hidden", panel.id !== `${source}-panel`));
+  updateSourceAction();
+}
+
+function formatFileSize(file) {
+  return `${Math.max(0.1, file.size / 1048576).toFixed(1)} MB`;
+}
+
+function clearPreparation() {
+  preparationToken += 1;
+  if (preparationTimer) window.clearInterval(preparationTimer);
+  preparationTimer = null;
+}
+
+function prepareLocalSource(kind, label) {
+  clearPreparation();
+  const token = preparationToken;
+  const isFile = kind === "file";
+  const card = isFile ? fileReadiness : youtubeReadiness;
+  const bar = isFile ? fileProgressBar : youtubeProgressBar;
+  const percentLabel = isFile ? fileProgressPercent : youtubeProgressPercent;
+  const messageLabel = isFile ? fileProgressMessage : youtubeProgressMessage;
+  const noteLabel = isFile ? fileReadyNote : youtubeReadyNote;
+  let percent = 0;
+
+  if (isFile) fileReady = false;
+  else youtubeReady = false;
+  card.classList.remove("hidden");
+  messageLabel.textContent = "Preparing local import…";
+  percentLabel.textContent = "0%";
+  bar.style.width = "0%";
+  noteLabel.textContent = `${label} stays on this machine.`;
+  updateSourceAction();
+
+  preparationTimer = window.setInterval(() => {
+    if (token !== preparationToken) return;
+    percent = Math.min(100, percent + 20);
+    bar.style.width = `${percent}%`;
+    percentLabel.textContent = `${percent}%`;
+    if (percent < 100) return;
+    window.clearInterval(preparationTimer);
+    preparationTimer = null;
+    if (isFile) fileReady = true;
+    else youtubeReady = true;
+    messageLabel.textContent = isFile ? "Import complete · Ready to transcribe" : "URL ready · Ready to transcribe";
+    noteLabel.textContent = isFile ? "Transcription will run locally on this machine." : "Audio will be downloaded locally when transcription begins.";
+    setStatus(isFile ? "Import complete · Ready to transcribe." : "URL ready · Ready to transcribe.", "success");
+    updateSourceAction();
+  }, 75);
+}
+
+function recordingSeconds(now = Date.now()) {
+  const end = recordingPausedAt || now;
+  return Math.max(0, Math.floor((end - recordingStartedAt - recordingPausedTotal) / 1000));
+}
+
+function paintRecordingTimer() {
+  recordingTime.textContent = formatTime(recordingSeconds());
+}
+
+function resetRecordingControls() {
+  clearInterval(recordingTimer);
+  recordingTimer = null;
+  recordButton.classList.remove("recording", "paused");
+  recordButtonSymbol.textContent = "●";
+  recordButton.setAttribute("aria-label", "Start recording");
+  recordingControls.classList.add("hidden");
+  stopButton.disabled = false;
+  recordingFinalizing = false;
+  updateSourceAction();
+}
+
+function displayRecordedFile(file, duration) {
   selectedFile = file;
+  fileReady = true;
   readyYoutubeUrl = "";
-  const size = Math.max(0.1, file.size / 1048576).toFixed(1);
-  if (source === "record") {
-    recordingLabel.textContent = "Recording ready";
-    recordingNote.textContent = `${file.name} (${size} MB) — ready to transcribe.`;
-  } else {
-    fileName.textContent = `${file.name} (${size} MB)`;
-  }
-  setStatus("");
-  updateReadyState();
+  currentSourceName = file.name;
+  recordingLabel.textContent = "Recording ready";
+  recordingTime.textContent = formatTime(duration);
+  recordingNote.textContent = `${file.name} · ${formatTime(duration)} · ready for local transcription.`;
 }
 
 // ── First-run modal ───────────────────────────────────────
 
 function maybeShowFirstRunModal() {
-  if (!hasTranscribed && !localStorage.getItem("sonotype-modal-seen")) {
-    modal.classList.remove("hidden");
-  }
+  if (!hasTranscribed && !localStorage.getItem("sonotype-modal-seen")) modal.classList.remove("hidden");
 }
 
 modalDismiss.addEventListener("click", () => {
   modal.classList.add("hidden");
   localStorage.setItem("sonotype-modal-seen", "1");
 });
-
-// Show modal shortly after page loads
 setTimeout(maybeShowFirstRunModal, 800);
 
-// ── Tab switching ─────────────────────────────────────────
+// ── View and source switching ─────────────────────────────
 
-document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
-  activeSource = tab.dataset.source;
-  document.querySelectorAll(".tab").forEach((item) => {
-    const active = item === tab;
-    item.classList.toggle("active", active);
-    item.setAttribute("aria-selected", active);
-  });
-  document.querySelectorAll(".source-panel").forEach((panel) => panel.classList.toggle("hidden", panel.id !== `${activeSource}-panel`));
-  setStatus("");
-  updateReadyState();
+topTabs.forEach((tab) => tab.addEventListener("click", () => switchView(tab.dataset.view)));
+sourceTabs.forEach((tab) => tab.addEventListener("click", () => {
+  switchSource(tab.dataset.source);
+  setStatus(tab.dataset.source === "record" ? "Ready — processing stays on this machine." : "Choose a local source, then prepare it before transcription.");
 }));
 
-// ── File upload ────────────────────────────────────────────
+// ── File import ────────────────────────────────────────────
+
+function displayFile(file) {
+  selectedFile = file;
+  readyYoutubeUrl = "";
+  youtubeReady = false;
+  currentSourceName = file.name;
+  fileName.textContent = `${file.name} · ${formatFileSize(file)}`;
+  switchSource("file");
+  prepareLocalSource("file", file.name);
+}
 
 fileInput.addEventListener("change", () => { if (fileInput.files[0]) displayFile(fileInput.files[0]); });
-["dragenter", "dragover"].forEach((eventName) => dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.add("dragging"); }));
-["dragleave", "drop"].forEach((eventName) => dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.remove("dragging"); }));
+["dragenter", "dragover"].forEach((eventName) => dropZone.addEventListener(eventName, (event) => {
+  event.preventDefault();
+  dropZone.classList.add("dragging");
+}));
+["dragleave", "drop"].forEach((eventName) => dropZone.addEventListener(eventName, (event) => {
+  event.preventDefault();
+  dropZone.classList.remove("dragging");
+}));
 dropZone.addEventListener("drop", (event) => { if (event.dataTransfer.files[0]) displayFile(event.dataTransfer.files[0]); });
 
 // ── Recording ─────────────────────────────────────────────
 
 async function startRecording() {
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+    setStatus("This device does not provide local microphone recording.", "error");
+    return;
+  }
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     recordingChunks = [];
     const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
-    recorder = new MediaRecorder(stream, { mimeType });
+    recorder = new MediaRecorder(recordingStream, { mimeType });
     recorder.ondataavailable = (event) => event.data.size && recordingChunks.push(event.data);
-    recorder.onstop = () => {
-      stream.getTracks().forEach((track) => track.stop());
-      clearInterval(recordingTimer);
-      recordingTime.textContent = formatTime(Math.floor((Date.now() - recordingStartedAt) / 1000));
-      recordButton.classList.remove("recording");
-      stopButton.classList.add("hidden");
+    recorder.onstop = async () => {
+      const duration = recordingSeconds();
+      recordingStream?.getTracks().forEach((track) => track.stop());
+      recordingStream = null;
       const recording = new Blob(recordingChunks, { type: mimeType });
-      displayFile(new File([recording], "sonotype-recording.webm", { type: mimeType }), "record");
+      const file = new File([recording], "sonotype-recording.webm", { type: mimeType });
+      recorder = null;
+      resetRecordingControls();
+      displayRecordedFile(file, duration);
+      setStatus("Recording stopped. Starting local transcription…");
+      await beginTranscription({ file, sourceName: file.name });
+    };
+    recorder.onerror = () => {
+      recordingStream?.getTracks().forEach((track) => track.stop());
+      recorder = null;
+      resetRecordingControls();
+      setStatus("The local recording could not be completed.", "error");
     };
     recorder.start(250);
     recordingStartedAt = Date.now();
-    recordingLabel.textContent = "Recording…";
+    recordingPausedAt = 0;
+    recordingPausedTotal = 0;
+    recordingLabel.textContent = "Recording in progress";
     recordingTime.textContent = "00:00";
+    recordingNote.textContent = "Recording locally · press the button to pause or resume.";
     recordButton.classList.add("recording");
-    stopButton.classList.remove("hidden");
-    recordingTimer = setInterval(() => { recordingTime.textContent = formatTime(Math.floor((Date.now() - recordingStartedAt) / 1000)); }, 1000);
-    updateReadyState();
+    recordButtonSymbol.textContent = "Ⅱ";
+    recordButton.setAttribute("aria-label", "Pause recording");
+    recordingControls.classList.remove("hidden");
+    recordingTimer = window.setInterval(paintRecordingTimer, 250);
+    updateSourceAction();
+    setStatus("Recording locally. Stop when you are ready to transcribe.");
   } catch {
     setStatus("Microphone access was not granted.", "error");
   }
 }
 
-recordButton.addEventListener("click", () => recorder?.state === "recording" ? recorder.stop() : startRecording());
-stopButton.addEventListener("click", () => recorder?.state === "recording" && recorder.stop());
+function toggleRecordingPause() {
+  if (!recorder) return;
+  if (recorder.state === "recording") {
+    recorder.pause();
+    recordingPausedAt = Date.now();
+    clearInterval(recordingTimer);
+    recordingTimer = null;
+    recordButton.classList.add("paused");
+    recordButtonSymbol.textContent = "▶";
+    recordButton.setAttribute("aria-label", "Resume recording");
+    recordingLabel.textContent = "Recording paused";
+    recordingNote.textContent = "Press the button to continue recording.";
+    setStatus("Recording paused.");
+  } else if (recorder.state === "paused") {
+    recordingPausedTotal += Date.now() - recordingPausedAt;
+    recordingPausedAt = 0;
+    recorder.resume();
+    recordButton.classList.remove("paused");
+    recordButtonSymbol.textContent = "Ⅱ";
+    recordButton.setAttribute("aria-label", "Pause recording");
+    recordingLabel.textContent = "Recording in progress";
+    recordingNote.textContent = "Recording locally · press the button to pause or resume.";
+    recordingTimer = window.setInterval(paintRecordingTimer, 250);
+    setStatus("Recording resumed.");
+  }
+}
 
-// ── YouTube ───────────────────────────────────────────────
+function finishRecording() {
+  if (!recorder || recorder.state === "inactive") return;
+  recordingFinalizing = true;
+  stopButton.disabled = true;
+  recordButton.disabled = true;
+  recordingLabel.textContent = "Preparing transcription";
+  recordingNote.textContent = "Stopping begins transcription automatically.";
+  if (recorder.state === "paused") {
+    recordingPausedTotal += Date.now() - recordingPausedAt;
+    recordingPausedAt = 0;
+  }
+  recorder.stop();
+}
 
-fetchButton.addEventListener("click", () => {
-  const value = youtubeUrl.value.trim();
+recordButton.addEventListener("click", () => {
+  if (recorder?.state === "recording" || recorder?.state === "paused") toggleRecordingPause();
+  else if (!isTranscribing) startRecording();
+});
+stopButton.addEventListener("click", finishRecording);
+
+// ── YouTube preparation ───────────────────────────────────
+
+function validYoutubeUrl(value) {
   try {
     const parsed = new URL(value);
-    if (!["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "www.youtu.be"].includes(parsed.hostname)) throw new Error();
-    readyYoutubeUrl = value;
-    selectedFile = null;
-    youtubeNote.textContent = "Video ready. Audio will be downloaded locally when you transcribe.";
-    setStatus("");
+    return YOUTUBE_HOSTS.has(parsed.hostname.toLowerCase());
   } catch {
-    readyYoutubeUrl = "";
-    youtubeNote.textContent = "Enter a valid YouTube URL. Use only content you own or are permitted to download.";
+    return false;
   }
-  updateReadyState();
-});
-youtubeUrl.addEventListener("input", () => { readyYoutubeUrl = ""; updateReadyState(); });
-
-// ── Transcription ────────────────────────────────────────
-
-function setProgress(percent, message) {
-  progressPanel.classList.remove("hidden");
-  if (message) progressMessage.textContent = message;
-  progressBar.style.width = `${percent}%`;
-  progressPercent.textContent = `${percent}%`;
 }
+
+prepareYoutubeButton.addEventListener("click", () => {
+  const value = youtubeUrl.value.trim();
+  if (!validYoutubeUrl(value)) {
+    readyYoutubeUrl = "";
+    youtubeReady = false;
+    youtubeReadiness.classList.add("hidden");
+    youtubeNote.textContent = "Enter a valid YouTube URL. Use only content you own or are permitted to download.";
+    updateSourceAction();
+    return;
+  }
+  selectedFile = null;
+  fileReady = false;
+  readyYoutubeUrl = value;
+  currentSourceName = "YouTube URL";
+  youtubeNote.textContent = "URL accepted. Audio will be downloaded locally when transcription begins.";
+  prepareLocalSource("youtube", "This URL");
+});
+youtubeUrl.addEventListener("input", () => {
+  readyYoutubeUrl = "";
+  youtubeReady = false;
+  youtubeReadiness.classList.add("hidden");
+  updateSourceAction();
+});
+
+// ── Transcription ─────────────────────────────────────────
 
 async function consumeEvents(response) {
   const reader = response.body.getReader();
@@ -188,35 +411,50 @@ async function consumeEvents(response) {
   throw new Error("The local service ended before returning a transcript.");
 }
 
-transcribeButton.addEventListener("click", async () => {
-  if (activeSource !== "youtube" && !selectedFile) return;
-  if (activeSource === "youtube" && !readyYoutubeUrl) return;
-  transcribeButton.disabled = true;
+async function beginTranscription({ file = null, sourceName = "", url = "" } = {}) {
+  if (isTranscribing) return;
+  if (!file && !url) return;
+  isTranscribing = true;
+  currentSourceName = sourceName || currentSourceName || (file ? file.name : "YouTube URL");
   confidence.classList.add("hidden");
   setStatus("");
-  setProgress(0, activeSource === "youtube" ? "Preparing audio download…" : "Preparing transcription…");
+  setProgress(0, url ? "Preparing local audio download…" : "Preparing local transcription…");
+
   const form = new FormData();
-  // Diarization is always on
   form.append("diarize", "true");
   let endpoint = "/transcribe";
-  if (activeSource === "youtube") { endpoint = "/transcribe/youtube"; form.append("url", readyYoutubeUrl); }
-  else form.append("media", selectedFile, selectedFile.name);
+  if (url) {
+    endpoint = "/transcribe/youtube";
+    form.append("url", url);
+  } else {
+    form.append("media", file, file.name);
+  }
+
   try {
     const response = await fetch(endpoint, { method: "POST", body: form });
-    if (!response.ok) { const problem = await response.json(); throw new Error(problem.detail || "Transcription could not start."); }
+    if (!response.ok) {
+      const problem = await response.json().catch(() => ({}));
+      throw new Error(problem.detail || "Transcription could not start.");
+    }
     const result = await consumeEvents(response);
-    transcript.textContent = result.transcript;
+    transcript.textContent = result.transcript || "";
     confidence.textContent = `Confidence: ${result.confidence}%`;
     confidence.classList.remove("hidden");
-    setProgress(100, "Complete");
-    setStatus("Transcript ready. Edit or save below.", "success");
+    setProgress(100, "Transcript ready locally");
+    setStatus("Transcript ready locally. Edit and save your copy.", "success");
     hasTranscribed = true;
   } catch (error) {
     progressPanel.classList.add("hidden");
     setStatus(error.message, "error");
   } finally {
-    updateReadyState();
+    isTranscribing = false;
+    updateSourceAction();
   }
+}
+
+transcribeButton.addEventListener("click", () => {
+  if (activeSource === "file" && selectedFile && fileReady) beginTranscription({ file: selectedFile, sourceName: selectedFile.name });
+  if (activeSource === "youtube" && readyYoutubeUrl && youtubeReady) beginTranscription({ url: readyYoutubeUrl, sourceName: "YouTube URL" });
 });
 
 // ── Copy ──────────────────────────────────────────────────
@@ -224,69 +462,152 @@ transcribeButton.addEventListener("click", async () => {
 copyButton.addEventListener("click", async () => {
   const text = transcript.innerText.trim();
   if (!text) { setStatus("Nothing to copy yet.", "error"); return; }
-  try { await navigator.clipboard.writeText(text); setStatus("Copied to clipboard.", "success"); }
-  catch { setStatus("Could not copy automatically. Select the text and copy manually.", "error"); }
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus("Copied to clipboard.", "success");
+  } catch {
+    setStatus("Could not copy automatically. Select the text and copy manually.", "error");
+  }
 });
 
-// ── Save As (any text format) ─────────────────────────────
+// ── Local saving and Library ──────────────────────────────
 
-saveButton.addEventListener("click", async () => {
+function readLibrary() {
+  try {
+    const entries = JSON.parse(localStorage.getItem(LIBRARY_STORAGE_KEY) || "[]");
+    return Array.isArray(entries) ? entries : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistLibrary() {
+  try { localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(libraryEntries)); } catch { /* local storage may be unavailable */ }
+}
+
+function addLibraryEntry(name, text, format) {
+  const entry = {
+    id: window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name,
+    format: format.toUpperCase(),
+    text,
+    confidence: confidence.textContent,
+    savedAt: new Date().toISOString(),
+  };
+  libraryEntries = [entry, ...libraryEntries.filter((item) => item.name !== name)].slice(0, 40);
+  persistLibrary();
+  renderLibrary();
+}
+
+function renderLibrary() {
+  libraryList.replaceChildren();
+  if (!libraryEntries.length) {
+    const empty = document.createElement("div");
+    empty.className = "library-empty";
+    empty.innerHTML = "<strong>No saved transcripts yet.</strong><span>Transcribe something, then choose Save transcription.</span>";
+    libraryList.append(empty);
+    return;
+  }
+  libraryEntries.forEach((entry) => {
+    const item = document.createElement("article");
+    item.className = "library-item";
+    const open = document.createElement("button");
+    open.className = "library-open";
+    open.type = "button";
+    const title = document.createElement("span");
+    title.className = "library-title";
+    title.textContent = entry.name;
+    const meta = document.createElement("span");
+    meta.className = "library-meta";
+    meta.textContent = `${entry.format} · ${new Date(entry.savedAt).toLocaleString()}`;
+    open.append(title, meta);
+    open.addEventListener("click", () => {
+      transcript.textContent = entry.text;
+      currentSourceName = entry.name;
+      if (entry.confidence) {
+        confidence.textContent = entry.confidence;
+        confidence.classList.remove("hidden");
+      }
+      switchView("record");
+      setStatus(`Opened ${entry.name}.`, "success");
+    });
+    const remove = document.createElement("button");
+    remove.className = "library-delete";
+    remove.type = "button";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => {
+      libraryEntries = libraryEntries.filter((saved) => saved.id !== entry.id);
+      persistLibrary();
+      renderLibrary();
+    });
+    item.append(open, remove);
+    libraryList.append(item);
+  });
+}
+
+function escapeHtml(value) {
+  return value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character]));
+}
+
+function serializeText(text, extension) {
+  if (extension === "html") return `<!doctype html><meta charset="utf-8"><title>Sonotype transcript</title><article><pre>${escapeHtml(text)}</pre></article>`;
+  if (extension === "csv") return text.split(/\r?\n/).map((line) => `"${line.replaceAll('"', '""')}"`).join("\n");
+  return text;
+}
+
+async function fetchExport(endpoint, text) {
+  const form = new FormData();
+  form.append("transcript", text);
+  const response = await fetch(endpoint, { method: "POST", body: form });
+  if (!response.ok) throw new Error("Save failed.");
+  return response.blob();
+}
+
+async function saveTranscription() {
   const text = transcript.innerText.trim();
   if (!text) { setStatus("Nothing to save yet.", "error"); return; }
-
-  // Try the native file save picker (showSaveFilePicker) first, fall back to download
-  if ("showSaveFilePicker" in window) {
-    try {
+  const selectedFormat = FORMAT_CONFIG[formatSelect.value] || FORMAT_CONFIG.txt;
+  const suggestedName = `sonotype-transcript.${selectedFormat.extension}`;
+  try {
+    if ("showSaveFilePicker" in window) {
       const handle = await window.showSaveFilePicker({
-        suggestedName: `sonotype-transcript`,
-        types: [
-          { description: "Text file", accept: { "text/plain": [".txt"] } },
-          { description: "Markdown", accept: { "text/markdown": [".md"] } },
-          { description: "Word document", accept: { "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"] } },
-          { description: "PDF", accept: { "application/pdf": [".pdf"] } },
-          { description: "HTML", accept: { "text/html": [".html"] } },
-          { description: "CSV", accept: { "text/csv": [".csv"] } },
-        ],
+        suggestedName,
+        types: [{ description: selectedFormat.label, accept: { [selectedFormat.mime]: [`.${selectedFormat.extension}`] } }],
       });
-      const ext = handle.name.split(".").pop().toLowerCase();
-
-      if (ext === "docx") {
-        // Use the export endpoint for DOCX
-        const form = new FormData();
-        form.append("transcript", text);
-        const response = await fetch("/export/docx", { method: "POST", body: form });
-        if (!response.ok) { setStatus("Save failed.", "error"); return; }
-        const blob = await response.blob();
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-      } else if (ext === "pdf") {
-        const form = new FormData();
-        form.append("transcript", text);
-        const response = await fetch("/export/pdf", { method: "POST", body: form });
-        if (!response.ok) { setStatus("Save failed.", "error"); return; }
-        const blob = await response.blob();
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-      } else {
-        // Plain text formats: txt, md, html, csv — write directly
-        const writable = await handle.createWritable();
-        await writable.write(text);
-        await writable.close();
-      }
-      setStatus(`Saved as ${handle.name}`, "success");
-    } catch (err) {
-      if (err.name !== "AbortError") setStatus("Save failed.", "error");
+      const extension = (handle.name.split(".").pop() || selectedFormat.extension).toLowerCase();
+      let content = serializeText(text, extension);
+      if (extension === "docx") content = await fetchExport("/export/docx", text);
+      if (extension === "pdf") content = await fetchExport("/export/pdf", text);
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      addLibraryEntry(handle.name, text, extension);
+      setStatus(`Saved locally as ${handle.name}`, "success");
+      return;
     }
-  } else {
-    // Fallback: trigger a download with a default .txt extension
-    const blob = new Blob([text], { type: "text/plain" });
-    const link = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "sonotype-transcript.txt" });
+
+    const extension = selectedFormat.extension;
+    const content = extension === "docx" || extension === "pdf"
+      ? await fetchExport(`/export/${extension}`, text)
+      : serializeText(text, extension);
+    const blob = content instanceof Blob ? content : new Blob([content], { type: selectedFormat.mime });
+    const href = URL.createObjectURL(blob);
+    const link = Object.assign(document.createElement("a"), { href, download: suggestedName });
     document.body.append(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(link.href);
-    setStatus("Saved as sonotype-transcript.txt", "success");
+    URL.revokeObjectURL(href);
+    addLibraryEntry(suggestedName, text, extension);
+    setStatus(`Saved locally as ${suggestedName}`, "success");
+  } catch (error) {
+    if (error.name !== "AbortError") setStatus(error.message || "Save failed.", "error");
   }
-});
+}
+
+saveButton.addEventListener("click", saveTranscription);
+
+// Start with the approved utility state: Record first, local processing always visible.
+switchView("record");
+switchSource("record");
+renderLibrary();
+setStatus("Ready — processing stays on this machine.");

@@ -23,6 +23,20 @@ def test_index_page_is_sonotype_html():
     assert "<title>Sonotype" in response.text
 
 
+def test_index_page_matches_focused_record_library_ui():
+    response = client.get("/")
+    assert "Local AI transcription" in response.text
+    assert 'data-view="record"' in response.text
+    assert 'data-view="library"' in response.text
+    assert "Record locally" in response.text
+    assert "Upload audio or video" in response.text
+    assert "YouTube URL" in response.text
+    assert "Stop &amp; Transcribe" in response.text
+    assert "Save transcription" in response.text
+    assert "Workspace" not in response.text
+    assert "side-menu" not in response.text
+
+
 def test_export_endpoints_reject_empty_transcripts():
     for endpoint in ("/export/docx", "/export/pdf"):
         response = client.post(endpoint, data={"transcript": "   "})
