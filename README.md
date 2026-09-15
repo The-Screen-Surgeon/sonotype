@@ -6,7 +6,7 @@ Sonotype is local AI transcription for Windows, Linux, and macOS. It is a focuse
 
 [Download Sonotype](https://the-screen-surgeon.github.io/sonotype/) · [View releases](https://github.com/The-Screen-Surgeon/sonotype/releases) · [Source code](https://github.com/The-Screen-Surgeon/sonotype)
 
-![Sonotype screenshot placeholder](docs/screenshot-placeholder.svg)
+![Sonotype desktop app](docs/sonotype-screenshot.png)
 
 ## Why Sonotype
 
