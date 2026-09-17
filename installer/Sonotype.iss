@@ -1,6 +1,6 @@
 #define MyAppName "Sonotype"
 #define MyAppPublisher "Brandon Hatcher"
-#define MyAppURL "https://the-screen-surgeon.github.io/sonotype/"
+#define MyAppURL "https://brandonth92.github.io/sonotype/"
 #define MyAppExeName "Sonotype.exe"
 
 #ifndef AppVersion

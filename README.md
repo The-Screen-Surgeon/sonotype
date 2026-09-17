@@ -4,7 +4,7 @@
 
 Sonotype is local AI transcription for Windows, Linux, and macOS. It is a focused desktop utility for recording, transcribing, editing, and saving audio on your computer.
 
-[Download Sonotype](https://the-screen-surgeon.github.io/sonotype/) · [View releases](https://github.com/The-Screen-Surgeon/sonotype/releases) · [Source code](https://github.com/The-Screen-Surgeon/sonotype)
+[Download Sonotype](https://brandonth92.github.io/sonotype/) · [View releases](https://github.com/brandonth92/sonotype/releases) · [Source code](https://github.com/brandonth92/sonotype)
 
 ![Sonotype desktop app](docs/sonotype-screenshot.png)
 
@@ -39,14 +39,14 @@ The app makes network requests only when it needs to download the speech model f
 
 ## Download for Windows, Linux, and macOS
 
-The [Sonotype download page](https://the-screen-surgeon.github.io/sonotype/) has the same platform guidance and the latest download buttons. Direct release links are below:
+The [Sonotype download page](https://brandonth92.github.io/sonotype/) has the same platform guidance and the latest download buttons. Direct release links are below:
 
 | Platform | Download | Notes |
 |---|---|---|
-| Windows x64 | [Sonotype Windows installer](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-Setup-Windows-x64.exe) | Windows 10/11; run setup for Start Menu/Desktop shortcuts |
-| Linux x64 | [Sonotype-Linux-x64.tar.gz](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-Linux-x64.tar.gz) | 64-bit Linux desktop; GTK 3 and WebKitGTK may be required |
-| macOS Apple silicon | [Sonotype-macOS-arm64.zip](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-macOS-arm64.zip) | M-series Macs; macOS 12+ |
-| macOS Intel | [Sonotype-macOS-x64.zip](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-macOS-x64.zip) | Older Intel Macs; macOS 12+ |
+| Windows x64 | [Sonotype Windows installer](https://github.com/brandonth92/sonotype/releases/latest/download/Sonotype-Setup-Windows-x64.exe) | Windows 10/11; run setup for Start Menu/Desktop shortcuts |
+| Linux x64 | [Sonotype-Linux-x64.tar.gz](https://github.com/brandonth92/sonotype/releases/latest/download/Sonotype-Linux-x64.tar.gz) | 64-bit Linux desktop; GTK 3 and WebKitGTK may be required |
+| macOS Apple silicon | [Sonotype-macOS-arm64.zip](https://github.com/brandonth92/sonotype/releases/latest/download/Sonotype-macOS-arm64.zip) | M-series Macs; macOS 12+ |
+| macOS Intel | [Sonotype-macOS-x64.zip](https://github.com/brandonth92/sonotype/releases/latest/download/Sonotype-macOS-x64.zip) | Older Intel Macs; macOS 12+ |
 
 The release packages include FFmpeg and do not require a Python installation. Linux users may need their distribution’s GTK 3 and WebKitGTK desktop libraries. On Debian/Ubuntu, the usual packages are:
 
@@ -54,7 +54,7 @@ The release packages include FFmpeg and do not require a Python installation. Li
 sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0
 ```
 
-Windows also has a [portable ZIP](https://github.com/The-Screen-Surgeon/sonotype/releases/latest/download/Sonotype-Windows-x64.zip) for users who do not want an installed shortcut. The installer is recommended because it places Sonotype in the user’s Programs folder and keeps app data separate from the application files.
+Windows also has a [portable ZIP](https://github.com/brandonth92/sonotype/releases/latest/download/Sonotype-Windows-x64.zip) for users who do not want an installed shortcut. The installer is recommended because it places Sonotype in the user’s Programs folder and keeps app data separate from the application files.
 
 ### Windows SmartScreen warning
 
@@ -91,7 +91,7 @@ The app runs at roughly 0.4x real-time on a typical laptop CPU. For an air-gappe
 Sonotype supports Python 3.10–3.12.
 
 ```bash
-git clone https://github.com/The-Screen-Surgeon/sonotype.git
+git clone https://github.com/brandonth92/sonotype.git
 cd sonotype
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
